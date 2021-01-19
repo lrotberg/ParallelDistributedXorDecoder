@@ -1,0 +1,19 @@
+build:
+	gcc -c cipher.c
+	gcc -o cipher cipher.o
+	rm cipher.o
+
+clean:
+	rm -f *.o cipher exp
+
+dev:
+	gcc -c exp.c
+	gcc -o exp exp.o
+	./exp text.txt 1
+	rm -f exp.o exp
+
+run:
+	gcc -c exp.c
+	gcc -o exp exp.o
+	./exp text.txt 0
+	rm -f exp.o exp

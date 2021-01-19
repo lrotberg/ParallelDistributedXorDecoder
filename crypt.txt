@@ -1,0 +1,6 @@
+_^RXVPC
+6e 6f 20 63 69 67 61 72 2e 
+parts[0] => 00000000, parts[1] => 10011001
+
+5e 5e 10 52 59 56 51 43 1e 
+f9a9 f9a9 f9a9 f9a9 f9a9 f9a9 f9a9 f9a9 f9f7 f9f6 f9b9 f9fa f9f0 f9fe f9f8 f9eb f9b7 f999 
