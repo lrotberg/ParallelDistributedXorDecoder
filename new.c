@@ -6,8 +6,8 @@
 
 #define KEY_SIZE 8
 #define ALLOCATION_SIZE 10
-#define MIN_VALUE 0x10000000
-#define MAX_VALUE 0xFFFFFFFF
+#define MIN_VALUE 0x01
+#define MAX_VALUE 0xFF
 
 char keyBytes[KEY_SIZE];
 
@@ -61,7 +61,8 @@ int main(int argc, char **argv)
   for (i = 0; c = fgetc(wordsFile) != EOF;)
   {
     line = inputString(wordsFile, ALLOCATION_SIZE);
-    words[i++] = strdup(line);
+    words[i] = strdup(line);
+    fprintf(stderr, "line %d -> %s", i, words[i++]);
     free(line);
   }
 
@@ -90,10 +91,12 @@ void clean(char **words, int numOfWords, char *key, FILE *input, FILE *output, F
 {
   int i;
 
-  for (i = 0; i < numOfWords; i++)
-  {
-    free(words[i]);
-  }
+  // fprintf(stderr, "\n%s\n", words[0]);
+
+  // for (i = 0; i < numOfWords; i++)
+  // {
+  //   free(words[i]);
+  // }
   free(words);
   free(key);
   fclose(input);
