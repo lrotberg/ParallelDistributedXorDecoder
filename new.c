@@ -61,8 +61,16 @@ int main(int argc, char **argv)
   for (i = 0; c = fgetc(wordsFile) != EOF;)
   {
     line = inputString(wordsFile, ALLOCATION_SIZE);
+    char *pattern = "ess'sss'ss";
+    int patLen = strlen(pattern);
+    char *temp = strstr(line, pattern);
+    if (temp != NULL)
+    {
+      line = strndup(line, strlen(line) - patLen);
+    }
     words[i] = strdup(line);
-    fprintf(stderr, "line %d -> %s", i, words[i++]);
+    fprintf(stderr, "line %d -> %s\n", i, words[i]);
+    i++;
     free(line);
   }
 
@@ -176,23 +184,28 @@ char *inputString(FILE *fp, size_t allocated_size)
   int ch;
   size_t input_length = 0;
   // *input_length = 0;
-  string = realloc(NULL, sizeof(char) * allocated_size);
+  string = (char *)realloc(NULL, sizeof(char) * allocated_size);
   if (!string)
     return string;
   while (EOF != (ch = fgetc(fp)))
   {
     if (ch == EOF)
       break;
+    if (ch == *"\n")
+    {
+      fseek(fp, -1, SEEK_CUR);
+      break;
+    }
     string[input_length] = ch;
     input_length += 1;
     if (input_length == allocated_size)
     {
-      string = realloc(string, sizeof(char) * (allocated_size += ALLOCATION_SIZE));
+      string = (char *)realloc(string, sizeof(char) * (allocated_size += ALLOCATION_SIZE));
       if (!string)
         return string;
     }
   }
-  return realloc(string, sizeof(char) * (input_length));
+  return (char *)realloc(string, sizeof(char) * (input_length));
 }
 
 char *createKey(unsigned int keyInt)
