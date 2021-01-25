@@ -17,7 +17,7 @@ int processKey(char *key);
 char *inputString(FILE *fp, size_t size);
 char *createKey(unsigned int keyInt);
 char *encodeToString(int nbytes, FILE *fp);
-char **splitStringBySpaces(int inputLen, char *inputStr);
+char **splitStringByDelimiter(int inputLen, char *inputStr, char *delim, int *counter);
 
 void encode(int nbytes);
 void clean(char **words, int numOfWords, char *key, FILE *input, FILE *output, FILE *wordsFile);
@@ -28,8 +28,8 @@ int main(int argc, char **argv)
   unsigned int keyInt = MIN_VALUE;
   char *key = createKey(keyInt);
   int nbytes = processKey(key); // number of bytes in key
-  char *line, *text, **words, **splitArr;
-  int numOfWords;
+  char *fileText, *text, **words, **splitArr;
+  int numOfWords, wordsCounter;
   int i = 0, c;
 
   // * open crypted file
@@ -58,36 +58,33 @@ int main(int argc, char **argv)
   words = (char **)malloc(sizeof(char *) * numOfWords);
 
   // * allocate each word in the words array
-  for (i = 0; c = fgetc(wordsFile) != EOF;)
-  {
-    line = inputString(wordsFile, ALLOCATION_SIZE);
-    char *pattern = "ess'sss'ss";
-    int patLen = strlen(pattern);
-    char *temp = strstr(line, pattern);
-    if (temp != NULL)
-    {
-      line = strndup(line, strlen(line) - patLen);
-    }
-    words[i] = strdup(line);
-    fprintf(stderr, "line %d -> %s\n", i, words[i]);
-    i++;
-    free(line);
-  }
+  fileText = inputString(wordsFile, ALLOCATION_SIZE);
+  words = splitStringByDelimiter(ALLOCATION_SIZE, fileText, "\n", &wordsCounter);
+
+  free(fileText);
 
   // TODO: Finish this
-  // while (1)
-  // {
-  // * encode the text to a string
-  text = encodeToString(nbytes, input);
-  // puts(text);
+  while (1)
+  {
+    // * encode the text to a string
+    text = encodeToString(nbytes, input);
+    // puts(text);
 
-  // * split text string into a string array by 'space' delimiter
-  splitArr = splitStringBySpaces(ALLOCATION_SIZE, text);
+    // * split text string into a string array by 'space' delimiter
+    splitArr = splitStringByDelimiter(ALLOCATION_SIZE, text, " ", &wordsCounter);
+    // fprintf(stderr, "%d", wordsCounter);
 
-  free(text);
-  // for
-  free(splitArr);
-  // }
+    // TODO: Add the loop
+    // *
+
+    // * free current iteration
+    free(text);
+    for (i = 0; i < wordsCounter; i++)
+    {
+      free(splitArr[i]);
+    }
+    free(splitArr);
+  }
 
   // * clean all
   clean(words, numOfWords, key, input, output, wordsFile);
@@ -191,11 +188,11 @@ char *inputString(FILE *fp, size_t allocated_size)
   {
     if (ch == EOF)
       break;
-    if (ch == *"\n")
-    {
-      fseek(fp, -1, SEEK_CUR);
-      break;
-    }
+    // if (ch == *"\n")
+    // {
+    //   fseek(fp, -1, SEEK_CUR);
+    //   break;
+    // }
     string[input_length] = ch;
     input_length += 1;
     if (input_length == allocated_size)
@@ -224,12 +221,12 @@ char *createKey(unsigned int keyInt)
   return key;
 }
 
-char **splitStringBySpaces(int inputLen, char *inputStr) //, FILE *outputFile
+char **splitStringByDelimiter(int inputLen, char *inputStr, char *delim, int *counter) //, FILE *outputFile
 {
   int i = 0;
   char **splitArr = (char **)malloc(inputLen * sizeof(char *));
 
-  splitArr[i] = strtok_r(inputStr, " ", &inputStr);
+  splitArr[i] = strtok_r(inputStr, delim, &inputStr);
   while (splitArr[i] != NULL)
   {
     if (i >= inputLen)
@@ -237,8 +234,9 @@ char **splitStringBySpaces(int inputLen, char *inputStr) //, FILE *outputFile
       splitArr = (char **)realloc(splitArr, sizeof(char *) * (inputLen += ALLOCATION_SIZE));
     }
     // fprintf(stderr, "%s\n", splitArr[i]);
-    splitArr[++i] = strtok_r(NULL, " ", &inputStr);
+    splitArr[++i] = strtok_r(NULL, delim, &inputStr);
   }
 
+  *counter = i;
   return splitArr;
 }
