@@ -15,3 +15,7 @@ de:
 
 dec:
 	./new < crpt > decrypt.txt
+
+gitconf:
+	git config --global user.name "Lior Rotberg"
+	git config --global user.email Exolite@gmail.com

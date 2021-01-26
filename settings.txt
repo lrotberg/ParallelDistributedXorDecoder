@@ -5,6 +5,10 @@
   "editor.tabSize": 2,
   "editor.formatOnSave": true,
   "editor.detectIndentation": false,
+  "editor.fontSize": 17,
+  "terminal.integrated.fontSize": 16,
+  "editor.fontFamily": "Fira Code",
+  "editor.fontLigatures": true,
   "editor.tokenColorCustomizations": {
     "comments": "#d624d6c2"
   },
