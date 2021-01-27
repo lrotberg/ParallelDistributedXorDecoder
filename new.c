@@ -55,7 +55,8 @@ int main(int argc, char **argv)
   fscanf(knowenWordsFile, "%d", &knowenWordsCounter);
 
   // * memory allocation of words array
-  knowenWords = (char **)malloc(sizeof(char *) * knowenWordsCounter);
+  // knowenWords = (char **)realloc(knowenWords, sizeof(char *) * knowenWordsCounter);
+  // knowenWords = (char **)malloc(sizeof(char *) * knowenWordsCounter);
 
   // * allocate each word in the words array
   inputfileText = inputString(knowenWordsFile, ALLOCATION_SIZE);
@@ -65,23 +66,26 @@ int main(int argc, char **argv)
   while (keyInt <= MAX_VALUE)
   {
     keyString = createKey(keyInt);
+    // fprintf(stderr, "\nkeyString ---> %s\n", keyString);
     numBytesInKey = processKey(keyString);
+    // fprintf(stderr, "numBytesInKey ---> %d\n", numBytesInKey);
 
     // * encode the text to a string
     decodedText = encodeToString(numBytesInKey, input);
+    // fprintf(stderr, "decodedText ----> %s\n", decodedText);
 
     // * split text string into a string array by 'space' delimiter
     decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, decodedText, " ", &decodedWordsCounter);
     // fprintf(stderr, "%d", decodedWordsCounter);
 
     // TODO: Add the loop
-    // *
+    // * match all words of decoded text with each of the knowen words
     for (i = 0; i < decodedWordsCounter; i++)
     {
       for (j = 0; j < knowenWordsCounter; j++)
       {
         cmpRes = strcmp(decodedSplitArray[i], knowenWords[j]);
-        if (cmpRes == 0) // * strings match
+        if (cmpRes == 0) // * words match
         {
           goto exitLoop;
         }
@@ -89,33 +93,36 @@ int main(int argc, char **argv)
     }
 
     // * free current iteration
-    free(decodedText);
+    // free(decodedText);
     for (i = 0; i < decodedWordsCounter; i++)
     {
       free(decodedSplitArray[i]);
     }
     free(decodedSplitArray);
 
+    fseek(input, 0, SEEK_SET);
     keyInt++;
   }
 
 exitLoop:
   if (cmpRes == 0)
   {
-    puts("Succsess! Key is:");
-    puts(keyString);
-    puts("Decoded text is:");
-    puts(decodedText);
+    fprintf(stderr, "Succsess! Key is: 0x%s\nDecoded text is:\n%s", keyString, decodedText);
+    fprintf(stderr, "\nafter success\n");
+    // puts("Succsess! Key is:");
+    // puts(keyString);
+    // puts("Decoded text is:");
+    // puts(decodedText);
 
-    free(decodedText);
-    for (i = 0; i < decodedWordsCounter; i++)
-    {
-      free(decodedSplitArray[i]);
-    }
-    free(decodedSplitArray);
+    // free(decodedText);
+    // for (i = 0; i < decodedWordsCounter; i++)
+    // {
+    //   free(decodedSplitArray[i]);
+    // }
+    // free(decodedSplitArray);
   }
 
-  free(inputfileText);
+  // free(inputfileText);
 
   // * clean all
   clean(knowenWords, knowenWordsCounter, keyString, input, output, knowenWordsFile);
@@ -186,13 +193,15 @@ char *encodeToString(int numBytesInKey, FILE *fp)
 {
   int i, j, c;
   int startSize = ALLOCATION_SIZE;
+  // char *encodedString; // = (char *)realloc(encodedString, sizeof(char) * startSize);
   char *encodedString = (char *)malloc(sizeof(char) * startSize);
 
   for (i = 0, j = 0; (c = fgetc(fp)) != EOF;)
   {
     if (j >= startSize)
     {
-      encodedString = (char *)realloc(encodedString, sizeof(char) * (startSize += ALLOCATION_SIZE));
+      startSize += ALLOCATION_SIZE;
+      encodedString = (char *)realloc(encodedString, sizeof(char) * startSize);
     }
     encodedString[j] = c ^ keyBytes[i];
     i++;
@@ -237,10 +246,12 @@ char *inputString(FILE *fp, size_t allocated_size)
 char *createKey(unsigned int keyInt)
 {
   int keyIntLen = floor(log10(keyInt)) + 1;
+  // char *keyString = (char *)realloc(keyString, keyIntLen * sizeof(char));
   char *keyString = (char *)malloc(keyIntLen * sizeof(char));
   int keyStrLen = sprintf(keyString, "%x", keyInt);
   if (keyStrLen <= 8 && keyStrLen % 2 == 1)
   {
+    // char *temp = (char *)realloc(temp, keyStrLen * sizeof(char));
     char *temp = (char *)malloc(keyStrLen * sizeof(char));
     strcpy(temp, "0");
     strcat(temp, keyString);
@@ -253,6 +264,7 @@ char *createKey(unsigned int keyInt)
 char **splitStringByDelimiter(int inputLen, char *inputStr, char *delim, int *counter) //, FILE *outputFile
 {
   int i = 0;
+  // char **decodedSplitArray = (char **)realloc(decodedSplitArray, inputLen * sizeof(char *));
   char **decodedSplitArray = (char **)malloc(inputLen * sizeof(char *));
 
   decodedSplitArray[i] = strtok_r(inputStr, delim, &inputStr);
