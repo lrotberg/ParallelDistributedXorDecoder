@@ -66,7 +66,7 @@ int main(int argc, char **argv)
   while (keyInt <= MAX_VALUE)
   {
     keyString = createKey(keyInt);
-    // fprintf(stderr, "\nkeyString ---> %s\n", keyString);
+    fprintf(stderr, "\nkeyString ----> %s\n", keyString);
     numBytesInKey = processKey(keyString);
     // fprintf(stderr, "numBytesInKey ---> %d\n", numBytesInKey);
 
@@ -75,9 +75,10 @@ int main(int argc, char **argv)
     // fprintf(stderr, "decodedText ----> %s\n", decodedText);
 
     // * split text string into a string array by 'space' delimiter
-    decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, decodedText, " ", &decodedWordsCounter);
+    decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, strdup(decodedText), " ", &decodedWordsCounter);
     // fprintf(stderr, "%d", decodedWordsCounter);
 
+    // fprintf(stderr, "%s", decodedText);
     // TODO: Add the loop
     // * match all words of decoded text with each of the knowen words
     for (i = 0; i < decodedWordsCounter; i++)
@@ -93,12 +94,13 @@ int main(int argc, char **argv)
     }
 
     // * free current iteration
-    // free(decodedText);
-    for (i = 0; i < decodedWordsCounter; i++)
-    {
-      free(decodedSplitArray[i]);
-    }
+    // for (i = 0; i < decodedWordsCounter;)
+    // {
+    //   fprintf(stderr, "\ndecodedWordsCounter %d ---> i %d ---> %s\n", decodedWordsCounter, i, decodedSplitArray[i]);
+    //   free(decodedSplitArray[i++]);
+    // }
     free(decodedSplitArray);
+    free(decodedText);
 
     fseek(input, 0, SEEK_SET);
     keyInt++;
@@ -107,8 +109,8 @@ int main(int argc, char **argv)
 exitLoop:
   if (cmpRes == 0)
   {
-    fprintf(stderr, "Succsess! Key is: 0x%s\nDecoded text is:\n%s", keyString, decodedText);
-    fprintf(stderr, "\nafter success\n");
+    fprintf(stderr, "\nSuccsess!\nKey is: 0x%s\nDecoded text is:\n%s\n\n", keyString, decodedText);
+    // fprintf(stderr, "\nafter success\n");
     // puts("Succsess! Key is:");
     // puts(keyString);
     // puts("Decoded text is:");
@@ -133,11 +135,11 @@ exitLoop:
 void clean(char **knowenWords, int knowenWordsCounter, char *keyString, FILE *input, FILE *output, FILE *knowenWordsFile)
 {
   int i;
-
-  for (i = 0; i < knowenWordsCounter; i++)
-  {
-    free(knowenWords[i]);
-  }
+  // fprintf(stderr, "%d", knowenWordsCounter);
+  // for (i = 0; i < knowenWordsCounter; i++)
+  // {
+  //   free(knowenWords[i]);
+  // }
   free(knowenWords);
   free(keyString);
   fclose(input);
