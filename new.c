@@ -3,11 +3,19 @@
 #include <ctype.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 #define KEY_SIZE 8
 #define ALLOCATION_SIZE 10
-#define MIN_VALUE 0x01
-#define MAX_VALUE 0xFF
+enum
+{
+  MIN_VALUE = 0x1,
+  SM_MAX_VALUE = 0xFF,
+  MD_MAX_VALUE = 0xFFFF,
+  LG_MAX_VALUE = 0xFFFFFFFF
+};
+// #define MIN_VALUE 0x01
+// #define MAX_VALUE 0xFF
 
 char keyBytes[KEY_SIZE];
 
@@ -29,11 +37,27 @@ int main(int argc, char **argv)
   char *keyString;
   int numBytesInKey;
   char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
-  int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen;
+  int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
   int i, j, c;
+  time_t start, end;
+
+  start = time(NULL);
 
   // * open crypted file
-  givenLen = *argv[1];
+  // givenLen = *argv[1];
+  sscanf(argv[1], "%d", &givenLen);
+  switch (givenLen)
+  {
+  case 2:
+    maxNum = MD_MAX_VALUE;
+    break;
+  case 4:
+    maxNum = LG_MAX_VALUE;
+    break;
+  default:
+    maxNum = SM_MAX_VALUE;
+  }
+  // fprintf(stderr, "\ngivenLen -> %d || maxNum 0x%x\n", givenLen, maxNum);
 
   input = fopen(argv[2], "r");
   if (!input)
@@ -60,16 +84,17 @@ int main(int argc, char **argv)
   inputfileText = inputString(knowenWordsFile, ALLOCATION_SIZE);
   knowenWords = splitStringByDelimiter(ALLOCATION_SIZE, inputfileText, "\n", &decodedWordsCounter);
 
-  while (keyInt <= MAX_VALUE)
+  while (keyInt <= maxNum)
   {
-    keyString = createKey(keyInt, givenLen);
-    // fprintf(stderr, "\nkeyString ----> 0x%s\n", keyString);
+    fprintf(stderr, "\nBefore creation, givenLen -> %d\n", givenLen);
+    keyString = createKey(keyInt, 2 * givenLen);
+    fprintf(stderr, "\nkeyString ----> 0x%s\n", keyString);
     numBytesInKey = processKey(keyString);
-    // fprintf(stderr, "numBytesInKey ---> %d\n", numBytesInKey);
+    fprintf(stderr, "numBytesInKey ---> %d\n", numBytesInKey);
 
     // * encode the text to a string
     decodedText = encodeToString(numBytesInKey, input);
-    // fprintf(stderr, "decodedText ----> %s\n", decodedText);
+    fprintf(stderr, "decodedText ----> %s\n", decodedText);
 
     // * split text string into a string array by 'space' delimiter
     decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, strdup(decodedText), " ", &decodedWordsCounter);
@@ -116,6 +141,8 @@ exitLoop:
   // * clean all
   clean(knowenWords, keyString, inputfileText, input, output, knowenWordsFile);
 
+  end = time(NULL);
+  fprintf(stderr, "Time taken to calculate the key is %.7f seconds\n", difftime(end, start));
   return 0;
 } // * main
 
@@ -223,30 +250,36 @@ char *inputString(FILE *fp, size_t allocated_size)
 char *createKey(unsigned int keyInt, int givenLen)
 {
   int keyIntLen = floor(log10(keyInt)) + 1;
-  char *keyString = (char *)malloc(keyIntLen * sizeof(char));
+  char *keyString = (char *)malloc(givenLen * sizeof(char));
   int keyStrLen = sprintf(keyString, "%x", keyInt);
-  if (keyStrLen <= 8 && keyStrLen % 2 == 1)
+  int i;
+  // if (keyStrLen <= 8 && keyStrLen % 2 == 1)
+  if (keyStrLen <= givenLen && keyStrLen % 2 == 1)
   {
-    char *temp = (char *)malloc(keyStrLen * sizeof(char));
+    char *temp = (char *)malloc(givenLen * sizeof(char));
     strcpy(temp, "0");
+    for (i = givenLen - keyStrLen; i > 1; i--)
+    {
+      strcat(temp, "0");
+    }
     strcat(temp, keyString);
     keyString = strdup(temp);
     free(temp);
   }
-  // fprintf(stderr, "%d", givenLen);
-  switch (givenLen)
+  // fprintf(stderr, "%s", keyString);
+  /*switch (givenLen)
   {
-  case 50:
+  case 2:
     strcat(keyString, keyString);
     break;
-  case 52:
+  case 4:
     strcat(keyString, keyString);
     strcat(keyString, keyString);
     break;
   default:
     // fprintf(stderr, "key byte length must be 1, 2 or 4! Key is %c byte length\nThe key is reverting to a 1 byte length\n", givenLen);
     break;
-  }
+  }*/
   return keyString;
 }
 
