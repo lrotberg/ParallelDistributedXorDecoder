@@ -1,6 +1,7 @@
 build:
-	gcc -c new.c
-	gcc -o new new.o -lm
+	gcc -c functions.c -o functions.o
+	gcc -c new.c -o new.o
+	gcc new functions.o new.o -lm
 
 dev:
 	gcc -c encode.c
