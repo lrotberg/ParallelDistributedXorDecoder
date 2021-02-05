@@ -8,6 +8,8 @@
 #include "constants.h"
 #include "functions.h"
 
+void checkNumProcs(int size, int n);
+
 int main(int argc, char **argv)
 {
   FILE *input = stdin, *output = stdout, *knowenWordsFile;
@@ -17,7 +19,14 @@ int main(int argc, char **argv)
   char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
   int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
   int i, j, c;
+  int size, rank;
   time_t start, end;
+  MPI_Status status;
+
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  checkNumProcs(size, 2);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   start = time(NULL);
 
@@ -122,4 +131,15 @@ exitLoop:
   end = time(NULL);
   fprintf(stderr, "Time taken to calculate the key is %.7f seconds\n", difftime(end, start));
   return 0;
+
+  MPI_Finalize();
 } // * main
+
+void checkNumProcs(int size, int n)
+{
+  if (size != n)
+  {
+    fprintf(stderr, "Run with two processes only\n");
+    MPI_Abort(MPI_COMM_WORLD, __LINE__);
+  }
+}
