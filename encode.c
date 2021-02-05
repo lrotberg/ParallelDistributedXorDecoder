@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   //      fprintf(stderr, "usage: %s <key>\nkey should be specified with hexa digits\n", argv[0]);
   //      exit(1);
   // }
-  unsigned int keyInt = 0x1234;
+  unsigned int keyInt = 0xF240;
   char *key = createKey(keyInt);
   // fprintf(stderr, "\n%s\n", key);
 

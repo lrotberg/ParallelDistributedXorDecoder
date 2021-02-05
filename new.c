@@ -8,7 +8,7 @@
 #include "constants.h"
 #include "functions.h"
 
-void checkNumProcs(int size, int n);
+// void checkNumProcs(int size, int n);
 
 int main(int argc, char **argv)
 {
@@ -19,14 +19,14 @@ int main(int argc, char **argv)
   char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
   int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
   int i, j, c;
-  int size, rank;
+  int cond = 0, size, rank;
   time_t start, end;
-  MPI_Status status;
+  // MPI_Status status;
 
-  MPI_Init(&argc, &argv);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
-  checkNumProcs(size, 2);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  // MPI_Init(&argc, &argv);
+  // MPI_Comm_size(MPI_COMM_WORLD, &size);
+  // // checkNumProcs(size, 2);
+  // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   start = time(NULL);
 
@@ -72,15 +72,15 @@ int main(int argc, char **argv)
 
   while (keyInt <= maxNum)
   {
-    fprintf(stderr, "\nBefore creation, givenLen -> %d\n", givenLen);
+    // fprintf(stderr, "\nBefore creation, givenLen -> %d\n", givenLen);
     keyString = createKey(keyInt, 2 * givenLen);
-    fprintf(stderr, "\nkeyString ----> 0x%s\n", keyString);
+    // fprintf(stderr, "\nkeyString ----> 0x%s\n", keyString);
     numBytesInKey = processKey(keyString);
-    fprintf(stderr, "numBytesInKey ---> %d\n", numBytesInKey);
+    // fprintf(stderr, "numBytesInKey ---> %d\n", numBytesInKey);
 
     // * encode the text to a string
     decodedText = encodeToString(numBytesInKey, input);
-    fprintf(stderr, "decodedText ----> %s\n", decodedText);
+    // fprintf(stderr, "decodedText ----> %s\n", decodedText);
 
     // * split text string into a string array by 'space' delimiter
     decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, strdup(decodedText), " ", &decodedWordsCounter);
@@ -97,11 +97,16 @@ int main(int argc, char **argv)
           cmpRes = strcmp(decodedSplitArray[i], knowenWords[j]);
           if (cmpRes == 0 && strlen(knowenWords[j]) > 2) // * words match and knowen word is longer then 2 chars for safety
           {
-            goto exitLoop;
+            cond = 1;
+            break;
           }
         }
       }
+      if (cond)
+        break;
     }
+    if (cond)
+      break;
 
     // * free current iteration
     free(decodedSplitArray);
@@ -109,11 +114,13 @@ int main(int argc, char **argv)
 
     // * return pointer to start of the file
     fseek(input, 0, SEEK_SET);
-    keyInt++;
+    if (keyInt == 0xFFFF)
+      keyInt = 0x01000000;
+    else
+      keyInt++;
   }
 
-exitLoop:
-  if (cmpRes == 0)
+  if (cond)
   {
     fprintf(stderr, "\nSuccsess!\nKey is: 0x%s\nDecoded text is:\n%s\n\n", keyString, decodedText);
 
@@ -129,17 +136,17 @@ exitLoop:
   clean(knowenWords, keyString, inputfileText, input, output, knowenWordsFile);
 
   end = time(NULL);
-  fprintf(stderr, "Time taken to calculate the key is %.7f seconds\n", difftime(end, start));
+  fprintf(stderr, "Time taken to calculate the key is %.2f seconds\n", difftime(end, start));
   return 0;
 
-  MPI_Finalize();
+  // MPI_Finalize();
 } // * main
 
-void checkNumProcs(int size, int n)
-{
-  if (size != n)
-  {
-    fprintf(stderr, "Run with two processes only\n");
-    MPI_Abort(MPI_COMM_WORLD, __LINE__);
-  }
-}
+// void checkNumProcs(int size, int n)
+// {
+//   if (size != n)
+//   {
+//     fprintf(stderr, "Run with two processes only\n");
+//     MPI_Abort(MPI_COMM_WORLD, __LINE__);
+//   }
+// }
