@@ -31,18 +31,7 @@ int main(int argc, char **argv)
   start = time(NULL);
 
   // * open crypted file
-  sscanf(argv[1], "%d", &givenLen);
-  switch (givenLen)
-  {
-  case 2:
-    maxNum = MD_MAX_VALUE;
-    break;
-  case 4:
-    maxNum = LG_MAX_VALUE;
-    break;
-  default:
-    maxNum = SM_MAX_VALUE;
-  }
+  maxNum = determineMaxNum(argv[1], &givenLen);
   // fprintf(stderr, "\ngivenLen -> %d || maxNum 0x%x\n", givenLen, maxNum);
 
   input = fopen(argv[2], "r");
@@ -62,6 +51,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "Error opening file words\n");
     return 0;
   }
+  // openFiles(argv[2], argv[3], argc, input, knowenWordsFile);
 
   // * get number of words for words array dynamic memory allocation
   fscanf(knowenWordsFile, "%d", &knowenWordsCounter);

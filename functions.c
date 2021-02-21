@@ -148,3 +148,40 @@ char **splitStringByDelimiter(int inputLen, char *inputStr, char *delim, int *co
   *counter = i;
   return decodedSplitArray;
 }
+
+int determineMaxNum(const char *fileName, int *givenLen)
+{
+  sscanf(fileName, "%d", givenLen);
+  switch (*givenLen)
+  {
+  case 2:
+    return MD_MAX_VALUE;
+    break;
+  case 4:
+    return LG_MAX_VALUE;
+    break;
+  default:
+    return SM_MAX_VALUE;
+  }
+}
+
+void openFiles(const char *inputFileName, const char *knowenWordsFileName, const int argc, FILE *input, FILE *knowenWordsFile)
+{
+  input = fopen(inputFileName, "r");
+  if (!input)
+  {
+    fprintf(stderr, "Error opening words file\n");
+    // return 0;
+  }
+
+  // * open words file
+  if (argc > 3)
+    knowenWordsFile = fopen(knowenWordsFileName, "r");
+  else
+    knowenWordsFile = fopen("linux_words.txt", "r");
+  if (!knowenWordsFile)
+  {
+    fprintf(stderr, "Error opening file words\n");
+    // return 0;
+  }
+}
