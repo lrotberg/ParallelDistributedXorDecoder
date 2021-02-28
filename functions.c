@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <omp.h>
 #include "constants.h"
 #include "functions.h"
 
@@ -67,6 +68,7 @@ char *encodeToString(int numBytesInKey, FILE *fp)
   int startSize = ALLOCATION_SIZE;
   char *encodedString = (char *)malloc(sizeof(char) * startSize);
 
+#pragma omp parallel for
   for (i = 0, j = 0; (c = fgetc(fp)) != EOF;)
   {
     if (j >= startSize)
@@ -119,6 +121,7 @@ char *createKey(unsigned int keyInt, int givenLen)
   {
     char *temp = (char *)malloc(givenLen * sizeof(char));
     strcpy(temp, "0");
+#pragma omp parallel for
     for (i = givenLen - keyStrLen; i > 1; i--)
     {
       strcat(temp, "0");

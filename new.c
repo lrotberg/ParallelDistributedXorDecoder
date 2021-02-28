@@ -4,11 +4,10 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-// #include <mpi.h>
+#include <mpi.h>
+#include <omp.h>
 #include "constants.h"
 #include "functions.h"
-
-// void checkNumProcs(int size, int n);
 
 int main(int argc, char **argv)
 {
@@ -18,49 +17,57 @@ int main(int argc, char **argv)
   int numBytesInKey;
   char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
   int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
-  int i, j, c;
-  int cond = 0, size, rank;
+  int i, j, k, c;
+  int cond = 0, comSize, procRank, startIndex, endIndex, partSize;
   time_t start, end;
-  // MPI_Status status;
+  MPI_Status status;
 
-  // MPI_Init(&argc, &argv);
-  // MPI_Comm_size(MPI_COMM_WORLD, &size);
-  // // checkNumProcs(size, 2);
-  // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &comSize);
+  MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
 
   start = time(NULL);
 
-  // * open crypted file
-  maxNum = determineMaxNum(argv[1], &givenLen);
-  // fprintf(stderr, "\ngivenLen -> %d || maxNum 0x%x\n", givenLen, maxNum);
-
-  input = fopen(argv[2], "r");
-  if (!input)
+  if (procRank == 0)
   {
-    fprintf(stderr, "Error opening words file\n");
-    return 0;
+    // * open crypted file
+    maxNum = determineMaxNum(argv[1], &givenLen);
+    // fprintf(stderr, "\ngivenLen -> %d || maxNum 0x%x\n", givenLen, maxNum);
+    partSize = maxNum / comSize;
+
+    input = fopen(argv[2], "r");
+    if (!input)
+    {
+      fprintf(stderr, "Error opening words file\n");
+      return 0;
+    }
+
+    // * open words file
+    if (argc > 3)
+      knowenWordsFile = fopen(argv[3], "r");
+    else
+      knowenWordsFile = fopen("linux_words.txt", "r");
+    if (!knowenWordsFile)
+    {
+      fprintf(stderr, "Error opening file words\n");
+      return 0;
+    }
+    // openFiles(argv[2], argv[3], argc, input, knowenWordsFile);
+
+    // * get number of words for words array dynamic memory allocation
+    fscanf(knowenWordsFile, "%d", &knowenWordsCounter);
+
+    // * allocate knowen words array and each of it's words
+    inputfileText = inputString(knowenWordsFile, ALLOCATION_SIZE);
+    knowenWords = splitStringByDelimiter(ALLOCATION_SIZE, inputfileText, "\n", &decodedWordsCounter);
   }
 
-  // * open words file
-  if (argc > 3)
-    knowenWordsFile = fopen(argv[3], "r");
-  else
-    knowenWordsFile = fopen("linux_words.txt", "r");
-  if (!knowenWordsFile)
-  {
-    fprintf(stderr, "Error opening file words\n");
-    return 0;
-  }
-  // openFiles(argv[2], argv[3], argc, input, knowenWordsFile);
+  startIndex = partSize * procRank;
+  endIndex = maxNum - ((comSize - procRank - 1) * partSize);
 
-  // * get number of words for words array dynamic memory allocation
-  fscanf(knowenWordsFile, "%d", &knowenWordsCounter);
-
-  // * allocate knowen words array and each of it's words
-  inputfileText = inputString(knowenWordsFile, ALLOCATION_SIZE);
-  knowenWords = splitStringByDelimiter(ALLOCATION_SIZE, inputfileText, "\n", &decodedWordsCounter);
-
-  while (keyInt <= maxNum)
+#pragma omp parallel for collapse(3) private(i, j)
+  for (k = startIndex; k < endIndex; k++)
+  // while (keyInt <= maxNum)
   {
     // fprintf(stderr, "\nBefore creation, givenLen -> %d\n", givenLen);
     keyString = createKey(keyInt, 2 * givenLen);
@@ -129,14 +136,5 @@ int main(int argc, char **argv)
   fprintf(stderr, "Time taken to calculate the key is %.2f seconds\n", difftime(end, start));
   return 0;
 
-  // MPI_Finalize();
+  MPI_Finalize();
 } // * main
-
-// void checkNumProcs(int size, int n)
-// {
-//   if (size != n)
-//   {
-//     fprintf(stderr, "Run with two processes only\n");
-//     MPI_Abort(MPI_COMM_WORLD, __LINE__);
-//   }
-// }
