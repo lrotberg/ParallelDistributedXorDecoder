@@ -18,7 +18,8 @@ int main(int argc, char **argv)
   char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
   int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
   int i, j, k, c;
-  int cond = 0, comSize, procRank, startIndex, endIndex, partSize;
+  int cond = 0, comSize, procRank, startIndex, endIndex;
+  unsigned int partSize;
   time_t start, end;
   MPI_Status status;
 
@@ -28,12 +29,12 @@ int main(int argc, char **argv)
 
   start = time(NULL);
 
+  // fprintf(stderr, "\n\n 0xAB1221BA / 4 = 0x%x\n\n", 0xAB1221BA / 4);
+
+  // fprintf(stderr, "\ngivenLen -> %d || maxNum 0x%x\n", givenLen, maxNum);
   if (procRank == 0)
   {
     // * open crypted file
-    maxNum = determineMaxNum(argv[1], &givenLen);
-    // fprintf(stderr, "\ngivenLen -> %d || maxNum 0x%x\n", givenLen, maxNum);
-    partSize = maxNum / comSize;
 
     input = fopen(argv[2], "r");
     if (!input)
@@ -62,8 +63,14 @@ int main(int argc, char **argv)
     knowenWords = splitStringByDelimiter(ALLOCATION_SIZE, inputfileText, "\n", &decodedWordsCounter);
   }
 
+  maxNum = determineMaxNum(argv[1], &givenLen);
+
+  partSize = maxNum / comSize;
+  fprintf(stderr, "\nmaxNum %d comSize %d partSize %d\n", maxNum, comSize, partSize);
+
   startIndex = partSize * procRank;
   endIndex = maxNum - ((comSize - procRank - 1) * partSize);
+  fprintf(stderr, "\npartSize %d rank %d startIndex 0x%x endIndex 0x%x\n", partSize, procRank, startIndex, endIndex);
 
 #pragma omp parallel for collapse(3) private(i, j)
   for (k = startIndex; k < endIndex; k++)

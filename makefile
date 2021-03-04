@@ -1,7 +1,7 @@
 build:
-	gcc -c functions.c
-	gcc -c new.c
-	gcc -o new functions.o new.o -lm
+	mpicc -c functions.c
+	mpicc -c new.c
+	mpicc -o new functions.o new.o -lm
 
 dev:
 	gcc -c encode.c
@@ -16,13 +16,13 @@ crypt:
 	./encode < text.txt > cryptedText.txt
 
 run4:
-	mpiexec ./new 4 cryptedText.txt words.txt
+	mpiexec -n 4 ./new 4 cryptedText.txt words.txt
 
 run2:
-	./new 2 cryptedText.txt words.txt
+	mpiexec -n 2 ./new 2 cryptedText.txt words.txt
 
 run1:
-	./new 1 cryptedText.txt words.txt
+	mpiexec -n 2 ./new 1 cryptedText.txt words.txt
 
 all4: clean dev crypt build run4
 
