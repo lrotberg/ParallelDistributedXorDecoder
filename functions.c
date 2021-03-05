@@ -150,18 +150,21 @@ char **splitStringByDelimiter(int inputLen, char *inputStr, char *delim, int *co
   return decodedSplitArray;
 }
 
-int determineMaxNum(const char *fileName, int *givenLen)
+int determineMaxNum(const char *fileName, int *givenLen, int *partSize)
 {
   sscanf(fileName, "%d", givenLen);
   switch (*givenLen)
   {
   case 2:
+    *partSize = 0x7FFF;
     return MD_MAX_VALUE;
     break;
   case 4:
+    *partSize = 0x3FFFFFFF;
     return LG_MAX_VALUE;
     break;
   default:
+    *partSize = 0x7F;
     return SM_MAX_VALUE;
   }
 }

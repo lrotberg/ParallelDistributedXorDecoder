@@ -12,14 +12,14 @@
 int main(int argc, char **argv)
 {
   FILE *input = stdin, *output = stdout, *knowenWordsFile;
-  unsigned int keyInt = MIN_VALUE;
+  unsigned int keyInt;
   char *keyString;
   int numBytesInKey;
   char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
   int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
-  int i, j, k, c;
+  int i, j, c;
   int cond = 0, comSize, procRank, startIndex, endIndex;
-  unsigned int partSize;
+  int partSize;
   time_t start, end;
   MPI_Status status;
 
@@ -29,13 +29,9 @@ int main(int argc, char **argv)
 
   start = time(NULL);
 
-  // fprintf(stderr, "\n\n 0xAB1221BA / 4 = 0x%x\n\n", 0xAB1221BA / 4);
-
-  // fprintf(stderr, "\ngivenLen -> %d || maxNum 0x%x\n", givenLen, maxNum);
   if (procRank == 0)
   {
     // * open crypted file
-
     input = fopen(argv[2], "r");
     if (!input)
     {
@@ -53,7 +49,6 @@ int main(int argc, char **argv)
       fprintf(stderr, "Error opening file words\n");
       return 0;
     }
-    // openFiles(argv[2], argv[3], argc, input, knowenWordsFile);
 
     // * get number of words for words array dynamic memory allocation
     fscanf(knowenWordsFile, "%d", &knowenWordsCounter);
@@ -61,36 +56,30 @@ int main(int argc, char **argv)
     // * allocate knowen words array and each of it's words
     inputfileText = inputString(knowenWordsFile, ALLOCATION_SIZE);
     knowenWords = splitStringByDelimiter(ALLOCATION_SIZE, inputfileText, "\n", &decodedWordsCounter);
+    MPI_Bcast();
   }
 
-  maxNum = determineMaxNum(argv[1], &givenLen);
-
-  partSize = maxNum / comSize;
-  fprintf(stderr, "\nmaxNum %d comSize %d partSize %d\n", maxNum, comSize, partSize);
-
+  maxNum = determineMaxNum(argv[1], &givenLen, &partSize);
   startIndex = partSize * procRank;
-  endIndex = maxNum - ((comSize - procRank - 1) * partSize);
+  endIndex = startIndex + partSize + 1;
+  if (procRank == comSize - 1)
+  {
+    endIndex = maxNum;
+  }
   fprintf(stderr, "\npartSize %d rank %d startIndex 0x%x endIndex 0x%x\n", partSize, procRank, startIndex, endIndex);
 
 #pragma omp parallel for collapse(3) private(i, j)
-  for (k = startIndex; k < endIndex; k++)
-  // while (keyInt <= maxNum)
+  for (keyInt = startIndex; keyInt < endIndex; keyInt++)
   {
-    // fprintf(stderr, "\nBefore creation, givenLen -> %d\n", givenLen);
     keyString = createKey(keyInt, 2 * givenLen);
-    // fprintf(stderr, "\nkeyString ----> 0x%s\n", keyString);
     numBytesInKey = processKey(keyString);
-    // fprintf(stderr, "numBytesInKey ---> %d\n", numBytesInKey);
 
     // * encode the text to a string
     decodedText = encodeToString(numBytesInKey, input);
-    // fprintf(stderr, "decodedText ----> %s\n", decodedText);
 
     // * split text string into a string array by 'space' delimiter
     decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, strdup(decodedText), " ", &decodedWordsCounter);
-    // fprintf(stderr, "%d", decodedWordsCounter);
 
-    // fprintf(stderr, "%s", decodedText);
     // * match all words of decoded text with each of the knowen words
     for (i = 0; i < decodedWordsCounter; i++)
     {
@@ -118,10 +107,10 @@ int main(int argc, char **argv)
 
     // * return pointer to start of the file
     fseek(input, 0, SEEK_SET);
-    if (keyInt == 0xFFFF)
-      keyInt = 0x01000000;
-    else
-      keyInt++;
+    // if (keyInt == 0xFFFF)
+    //   keyInt = 0x01000000;
+    // else
+    //   keyInt++;
   }
 
   if (cond)
@@ -141,7 +130,7 @@ int main(int argc, char **argv)
 
   end = time(NULL);
   fprintf(stderr, "Time taken to calculate the key is %.2f seconds\n", difftime(end, start));
-  return 0;
-
   MPI_Finalize();
+
+  return 0;
 } // * main
