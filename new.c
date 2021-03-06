@@ -12,13 +12,13 @@
 int main(int argc, char **argv)
 {
   FILE *input = stdin, *output = stdout, *knowenWordsFile;
-  unsigned int keyInt;
+  unsigned int keyInt, startIndex, endIndex;
   char *keyString;
   int numBytesInKey;
   char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
   int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
   int i, j, c;
-  int cond = 0, comSize, procRank, startIndex, endIndex;
+  int cond = 0, comSize, procRank;
   int partSize;
   time_t start, end;
   MPI_Status status;
@@ -73,10 +73,10 @@ int main(int argc, char **argv)
   {
     endIndex = maxNum;
   }
-  fprintf(stderr, "\npartSize %d rank %d startIndex 0x%x endIndex 0x%x\n", partSize, procRank, startIndex, endIndex);
+  // fprintf(stderr, "\npartSize %d rank %d startIndex 0x%x endIndex 0x%x\n", partSize, procRank, startIndex, endIndex);
 
-#pragma omp parallel for collapse(3) private(i, j)
   for (keyInt = startIndex; keyInt < endIndex; keyInt++)
+
   {
     keyString = createKey(keyInt, 2 * givenLen);
     numBytesInKey = processKey(keyString);
@@ -87,7 +87,8 @@ int main(int argc, char **argv)
     // * split text string into a string array by 'space' delimiter
     decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, strdup(decodedText), " ", &decodedWordsCounter);
 
-    // * match all words of decoded text with each of the knowen words
+// * match all words of decoded text with each of the knowen words
+#pragma omp parallel for collapse(2) private(j) num_threads(2 * comSize)
     for (i = 0; i < decodedWordsCounter; i++)
     {
       for (j = 0; j < knowenWordsCounter; j++)
@@ -98,12 +99,12 @@ int main(int argc, char **argv)
           if (cmpRes == 0) // * words match
           {
             cond = 1;
-            break;
+            // break;
           }
         }
       }
-      if (cond)
-        break;
+      // if (cond)
+      //   break;
     }
     if (cond)
       break;

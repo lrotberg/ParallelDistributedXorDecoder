@@ -76,11 +76,11 @@ int main(int argc, char **argv)
 
     // * split text string into a string array by 'space' delimiter
     decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, strdup(decodedText), " ", &decodedWordsCounter);
-// fprintf(stderr, "%d", decodedWordsCounter);
+    // fprintf(stderr, "%d", decodedWordsCounter);
 
-// fprintf(stderr, "%s", decodedText);
-// * match all words of decoded text with each of the knowen words
-#pragma omp parallel for collapse(2) num_threads(8)
+    // fprintf(stderr, "%s", decodedText);
+    // * match all words of decoded text with each of the knowen words
+#pragma omp parallel for collapse(2) private(j) num_threads(8)
     for (i = 0; i < decodedWordsCounter; i++)
     {
       for (j = 0; j < knowenWordsCounter; j++)
