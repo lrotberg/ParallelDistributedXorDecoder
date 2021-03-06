@@ -3,12 +3,19 @@ build:
 	mpicc -c new.c
 	mpicc -o new functions.o new.o -lm
 
+build2:
+	gcc -c functions2.c
+	gcc -fopenmp -c new2.c
+	gcc -fopenmp -o new2 functions2.o new2.o -lm
+
+fc: dev crypt
+
 dev:
 	gcc -c encode.c
 	gcc -o encode encode.o -lm
 
 clean:
-	rm -f *.o ./new ./encode cryptedText.txt
+	rm -f *.o ./new ./encode ./new2 cryptedText.txt
 
 cb: clean build
 

@@ -4,34 +4,37 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include "mpi.h"
+// #include <mpi.h>
 #include <omp.h>
 #include "constants.h"
 #include "functions.h"
 
+// void checkNumProcs(int size, int n);
+
 int main(int argc, char **argv)
 {
   FILE *input = stdin, *output = stdout, *knowenWordsFile;
-  unsigned int keyInt;
+  unsigned int keyInt = MIN_VALUE;
   char *keyString;
   int numBytesInKey;
   char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
   int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
   int i, j, c;
-  int cond = 0, comSize, procRank, startIndex, endIndex;
-  int partSize;
+  int cond = 0, size, rank;
   time_t start, end;
-  MPI_Status status;
+  // MPI_Status status;
 
-  MPI_Init(&argc, &argv);
-  MPI_Comm_size(MPI_COMM_WORLD, &comSize);
-  MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
+  // MPI_Init(&argc, &argv);
+  // MPI_Comm_size(MPI_COMM_WORLD, &size);
+  // // checkNumProcs(size, 2);
+  // MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   start = time(NULL);
 
-  // if (procRank == 0)
-  // {
   // * open crypted file
+  maxNum = determineMaxNum(argv[1], &givenLen);
+  // fprintf(stderr, "\ngivenLen -> %d || maxNum 0x%x\n", givenLen, maxNum);
+
   input = fopen(argv[2], "r");
   if (!input)
   {
@@ -49,6 +52,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "Error opening file words\n");
     return 0;
   }
+  // openFiles(argv[2], argv[3], argc, input, knowenWordsFile);
 
   // * get number of words for words array dynamic memory allocation
   fscanf(knowenWordsFile, "%d", &knowenWordsCounter);
@@ -56,54 +60,44 @@ int main(int argc, char **argv)
   // * allocate knowen words array and each of it's words
   inputfileText = inputString(knowenWordsFile, ALLOCATION_SIZE);
   knowenWords = splitStringByDelimiter(ALLOCATION_SIZE, inputfileText, "\n", &decodedWordsCounter);
-  // }
-  // MPI_Bcast(
-  //   void* data,
-  //   int count,
-  //   MPI_Datatype datatype,
-  //   int root,
-  //   MPI_Comm communicator);
-  MPI_Bcast(knowenWords, knowenWordsCounter, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(input, strlen(input), MPI_CHAR, 0, MPI_COMM_WORLD);
 
-  maxNum = determineMaxNum(argv[1], &givenLen, &partSize);
-  startIndex = partSize * procRank;
-  endIndex = startIndex + partSize + 1;
-  if (procRank == comSize - 1)
+  // fprintf(stderr, "​num_threads %d", omp_get_num_threads());
+  while (keyInt <= maxNum)
   {
-    endIndex = maxNum;
-  }
-  fprintf(stderr, "\npartSize %d rank %d startIndex 0x%x endIndex 0x%x\n", partSize, procRank, startIndex, endIndex);
-
-#pragma omp parallel for collapse(3) private(i, j)
-  for (keyInt = startIndex; keyInt < endIndex; keyInt++)
-  {
+    // fprintf(stderr, "\nBefore creation, givenLen -> %d\n", givenLen);
     keyString = createKey(keyInt, 2 * givenLen);
+    // fprintf(stderr, "\nkeyString ----> 0x%s\n", keyString);
     numBytesInKey = processKey(keyString);
+    // fprintf(stderr, "numBytesInKey ---> %d\n", numBytesInKey);
 
     // * encode the text to a string
     decodedText = encodeToString(numBytesInKey, input);
+    // fprintf(stderr, "decodedText ----> %s\n", decodedText);
 
     // * split text string into a string array by 'space' delimiter
     decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, strdup(decodedText), " ", &decodedWordsCounter);
+// fprintf(stderr, "%d", decodedWordsCounter);
 
-    // * match all words of decoded text with each of the knowen words
+// fprintf(stderr, "%s", decodedText);
+// * match all words of decoded text with each of the knowen words
+#pragma omp parallel for collapse(2) num_threads(8)
     for (i = 0; i < decodedWordsCounter; i++)
     {
       for (j = 0; j < knowenWordsCounter; j++)
       {
+        // fprintf(stderr, "​num_threads %d\n", omp_get_num_threads());
         if (strlen(knowenWords[j]) > 2)
         {
           cmpRes = strcmp(decodedSplitArray[i], knowenWords[j]);
           if (cmpRes == 0) // * words match
           {
             cond = 1;
-            break;
+            // break;
           }
         }
       }
-      if (cond)
-        break;
+      // if (cond)
+      //   break;
     }
     if (cond)
       break;
@@ -114,10 +108,10 @@ int main(int argc, char **argv)
 
     // * return pointer to start of the file
     fseek(input, 0, SEEK_SET);
-    // if (keyInt == 0xFFFF)
-    //   keyInt = 0x01000000;
-    // else
-    //   keyInt++;
+    if (keyInt == 0xFFFF)
+      keyInt = 0x01000000;
+    else
+      keyInt++;
   }
 
   if (cond)
@@ -137,7 +131,16 @@ int main(int argc, char **argv)
 
   end = time(NULL);
   fprintf(stderr, "Time taken to calculate the key is %.2f seconds\n", difftime(end, start));
-  MPI_Finalize();
-
   return 0;
+
+  // MPI_Finalize();
 } // * main
+
+// void checkNumProcs(int size, int n)
+// {
+//   if (size != n)
+//   {
+//     fprintf(stderr, "Run with two processes only\n");
+//     MPI_Abort(MPI_COMM_WORLD, __LINE__);
+//   }
+// }
