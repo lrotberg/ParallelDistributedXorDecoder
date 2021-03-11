@@ -4,7 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include "mpi.h"
+#include <mpi.h>
 #include <omp.h>
 #include "constants.h"
 #include "functions.h"

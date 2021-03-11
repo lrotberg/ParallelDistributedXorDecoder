@@ -2,8 +2,8 @@
 
 int hex2int(char h);
 int processKey(char *keyString);
-int determineMaxNum(const char *fileName, int *givenLen);
-// int determineMaxNum(const char *fileName, int *givenLen, int *partSize);
+// int determineMaxNum(const char *fileName, int *givenLen);
+int determineMaxNum(const char *fileName, int *givenLen, int *partSize);
 
 char *inputString(FILE *fp, size_t size);
 char *createKey(unsigned int keyInt, int givenLen);
