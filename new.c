@@ -19,12 +19,11 @@ int main(int argc, char **argv)
   int numBytesInKey;
   char *dictStr, *decodedText, **dict, **decodedSplitArray;
   char *encodedText;
-  int dictStrLen, decodedWordsCounter, cmpRes, givenLen, maxNum;
-  int i, j, c;
+  int dictStrLen, decodedWordsCounter, cmpRes, maxNum;
+  int i, j;
   int matchCounter, comSize, procRank, numOfWords;
   int partSize, encodedTextLen;
-  double start, end;
-  MPI_Status status;
+  double start;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &comSize);
@@ -79,22 +78,18 @@ int main(int argc, char **argv)
 
   MPI_Bcast(encodedText, encodedTextLen, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-  //maxNum = determineMaxNum(argv[1], &givenLen, &partSize);
-  partSize = UINT_MAX / comSize;
-  if (procRank == comSize - 1)
-  {
-    partSize += UINT_MAX % comSize;
-  }
+  maxNum = determineMaxNum(argv[1], &partSize);
   startIndex = partSize * procRank;
   endIndex = startIndex + partSize + 1;
-
-  // fprintf(stderr, "\npartSize %d rank %d startIndex 0x%x endIndex 0x%x\n", partSize, procRank, startIndex, endIndex);
+  if (procRank == comSize - 1)
+  {
+    endIndex = maxNum;
+  }
 
   for (keyInt = startIndex; keyInt < endIndex; keyInt++)
   {
     matchCounter = 0;
     keyString = createKey(keyInt);
-    // fprintf(stderr, "process %d keyString %s\n", procRank, keyString);
     numBytesInKey = processKey(keyString);
 
     // * encode the text to a string
@@ -109,7 +104,6 @@ int main(int argc, char **argv)
     {
       for (j = 0; j < numOfWords; j++)
       {
-        // fprintf(stderr, "dict[%d] = %s\n", j, dict[j]);
         if (strlen(dict[j]) > 2)
         {
           cmpRes = strcmp(decodedSplitArray[i], dict[j]);
@@ -124,31 +118,25 @@ int main(int argc, char **argv)
       break;
 
     // * free current iteration
-    // fprintf(stderr, "proc %d before free 1\n", procRank);
     free(decodedSplitArray);
     free(decodedText);
   }
 
   if (matchCounter >= 2)
   {
-    fprintf(stderr, "\nProcess %d - Success!\nKey is: 0x%s\nDecoded text is:\n%s\n\n", procRank, keyString, decodedText);
+    printf("\nProcess %d - Success!\nKey is: 0x%s\nDecoded text is:\n%s\n", procRank, keyString, decodedText);
 
-    // fprintf(stderr, "proc %d before free 2 success\n", procRank);
     free(decodedSplitArray);
     free(decodedText);
-
-    // MPI_Abort(MPI_COMM_WORLD, 0);
   }
   else
   {
-    fprintf(stderr, "\nProcess %d - Failure! No valid key was found\n", procRank);
+    printf("\nProcess %d - Failure! No valid key was found\n", procRank);
   }
 
   // * clean all
-  // fprintf(stderr, "proc %d before clean\n", procRank);
   clean(dict, keyString, dictStr);
 
-  // end = time(NULL);
   if (procRank == 0)
   {
     fprintf(stderr, "Time taken to calculate the key is %f seconds\n", MPI_Wtime() - start);

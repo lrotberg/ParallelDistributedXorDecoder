@@ -3,7 +3,7 @@
 int hex2int(char h);
 int processKey(char *keyString);
 // int determineMaxNum(const char *fileName, int *givenLen);
-int determineMaxNum(const char *fileName, int *givenLen, int *partSize);
+int determineMaxNum(const char *fileName, int *partSize);
 int countDigits(unsigned int num);
 
 char *inputString(FILE *fp, size_t size);

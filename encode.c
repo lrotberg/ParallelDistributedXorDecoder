@@ -10,7 +10,7 @@
 char keyBytes[MAX_KEY_SIZE];
 
 int processKey(char *key);
-
+int countDigits(unsigned int num);
 char *createKey(unsigned int keyInt);
 
 int main(int argc, char **argv)
@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   //      fprintf(stderr, "usage: %s <key>\nkey should be specified with hexa digits\n", argv[0]);
   //      exit(1);
   // }
-  unsigned int keyInt = 0x4A012F46;
+  unsigned int keyInt = 0x1002;
   char *key = createKey(keyInt);
   // fprintf(stderr, "\n%s\n", key);
 
@@ -58,10 +58,26 @@ int main(int argc, char **argv)
 //   }
 //   return key;
 // }
+int countDigits(unsigned int num)
+{
+  int count = 0x0;
+
+  if (num == 0x0)
+  {
+    return 0x1;
+  }
+
+  while (num)
+  {
+    num /= 0x10;
+    count++;
+  }
+  return count;
+}
 
 char *createKey(unsigned int keyInt)
 {
-  int keyIntLen = floor(log10(keyInt));
+  int keyIntLen = countDigits(keyInt);
   char *keyString = (char *)calloc(keyIntLen + 1, sizeof(char));
 
   if (keyIntLen % 2 == 1)
