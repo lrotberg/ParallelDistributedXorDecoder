@@ -7,14 +7,11 @@
 #include "constants.h"
 #include "functions.h"
 
-void clean(char **knowenWords, char *keyString, char *inputfileText, FILE *input, FILE *output, FILE *knowenWordsFile)
+void clean(char **knowenWords, char *keyString, char *inputfileText)
 {
   free(knowenWords);
   free(keyString);
   free(inputfileText);
-  fclose(input);
-  fclose(output);
-  fclose(knowenWordsFile);
 }
 
 int hex2int(char h)
@@ -84,6 +81,22 @@ char *encodeToString(int numBytesInKey, FILE *fp)
   return encodedString;
 }
 
+char *encodeStr(int numBytesInKey, char *encodedStr, int encodedStrLen)
+{
+  int i, j;
+  char *decodedText = (char *)malloc(sizeof(char) * encodedStrLen);
+
+  for (i = 0, j = 0; j < encodedStrLen; j++)
+  {
+    decodedText[j] = encodedStr[j] ^ keyBytes[i];
+    i++;
+    if (i >= numBytesInKey)
+      i = 0;
+  }
+
+  return decodedText;
+}
+
 char *inputString(FILE *fp, size_t allocated_size)
 {
   char *string;
@@ -108,19 +121,19 @@ char *inputString(FILE *fp, size_t allocated_size)
   return (char *)realloc(string, sizeof(char) * (input_length));
 }
 
-char *createKey(unsigned int keyInt, int givenLen)
+char *createKey2(unsigned int keyInt, int givenLen)
 {
   int keyIntLen = floor(log10(keyInt)) + 1;
-  char *keyString = (char *)malloc(givenLen * sizeof(char));
+  char *keyString = (char *)malloc(keyIntLen * sizeof(char));
   int keyStrLen = sprintf(keyString, "%x", keyInt);
   int i;
 
-  if (keyStrLen <= givenLen && keyStrLen % 2 == 1)
+  if (keyStrLen <= keyIntLen && keyStrLen % 2 == 1)
   {
-    char *temp = (char *)malloc(givenLen * sizeof(char));
+    char *temp = (char *)malloc(keyIntLen * sizeof(char));
     strcpy(temp, "0");
 
-    for (i = givenLen - keyStrLen; i > 1; i--)
+    for (i = keyIntLen - keyStrLen; i > 1; i--)
     {
       strcat(temp, "0");
     }
@@ -131,10 +144,44 @@ char *createKey(unsigned int keyInt, int givenLen)
   return keyString;
 }
 
+int countDigits(unsigned int num)
+{
+  int count = 0x0;
+
+  if (num == 0x0)
+  {
+    return 0x1;
+  }
+
+  while (num)
+  {
+    num /= 0x10;
+    count++;
+  }
+  return count;
+}
+
+char *createKey(unsigned int keyInt)
+{
+  int keyIntLen = countDigits(keyInt);
+  char *keyString = (char *)calloc(keyIntLen + 1, sizeof(char));
+  // fprintf(stderr, "keyIntLen %d\n", keyIntLen);
+  if (keyIntLen % 2 == 1)
+  {
+    sprintf(keyString, "0%x", keyInt);
+  }
+  else
+  {
+    sprintf(keyString, "%x", keyInt);
+  }
+  // fprintf(stderr, "keyIntLen %d keyString %s\n", keyIntLen, keyString);
+  return keyString;
+}
+
 char **splitStringByDelimiter(int inputLen, char *inputStr, char *delim, int *counter)
 {
   int i = 0;
-  char **decodedSplitArray = (char **)malloc(inputLen * sizeof(char *));
+  char **decodedSplitArray = (char **)calloc(inputLen, sizeof(char *));
 
   decodedSplitArray[i] = strtok_r(inputStr, delim, &inputStr);
   while (decodedSplitArray[i] != NULL)

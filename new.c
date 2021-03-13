@@ -6,138 +6,153 @@
 #include <time.h>
 #include <mpi.h>
 #include <omp.h>
+#include <limits.h>
+
 #include "constants.h"
 #include "functions.h"
 
 int main(int argc, char **argv)
 {
-  FILE *input = stdin, *output = stdout, *knowenWordsFile;
+  FILE *input = stdin, *knowenWordsFile;
   unsigned int keyInt, startIndex, endIndex;
   char *keyString;
   int numBytesInKey;
-  char *inputfileText, *decodedText, **knowenWords, **decodedSplitArray;
-  int knowenWordsCounter, decodedWordsCounter, cmpRes, givenLen, maxNum;
+  char *dictStr, *decodedText, **dict, **decodedSplitArray;
+  char *encodedText;
+  int dictStrLen, decodedWordsCounter, cmpRes, givenLen, maxNum;
   int i, j, c;
-  int cond = 0, comSize, procRank;
-  int partSize;
-  time_t start, end;
+  int matchCounter, comSize, procRank, numOfWords;
+  int partSize, encodedTextLen;
+  double start, end;
   MPI_Status status;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &comSize);
   MPI_Comm_rank(MPI_COMM_WORLD, &procRank);
 
-  start = time(NULL);
+  start = MPI_Wtime();
 
-  // if (procRank == 0)
-  // {
-  // * open crypted file
-  input = fopen(argv[2], "r");
-  if (!input)
+  if (procRank == 0)
   {
-    fprintf(stderr, "Error opening words file\n");
-    return 0;
+    // * open crypted file
+    input = fopen(argv[2], "r");
+    if (!input)
+    {
+      fprintf(stderr, "Error opening words file\n");
+      return 0;
+    }
+
+    // * open words file
+    if (argc > 3)
+      knowenWordsFile = fopen(argv[3], "r");
+    else
+      knowenWordsFile = fopen("linux_words.txt", "r");
+    if (!knowenWordsFile)
+    {
+      fprintf(stderr, "Error opening file words\n");
+      return 0;
+    }
+
+    // * get number of words for words array dynamic memory allocation
+    fscanf(knowenWordsFile, "%d", &numOfWords);
+
+    // * allocate knowen words array and each of it's words
+    dictStr = inputString(knowenWordsFile, ALLOCATION_SIZE);
+    dictStrLen = strlen(dictStr);
+    encodedText = inputString(input, ALLOCATION_SIZE);
+    encodedTextLen = strlen(encodedText);
+    fclose(input);
+    fclose(knowenWordsFile);
   }
 
-  // * open words file
-  if (argc > 3)
-    knowenWordsFile = fopen(argv[3], "r");
-  else
-    knowenWordsFile = fopen("linux_words.txt", "r");
-  if (!knowenWordsFile)
+  MPI_Bcast(&numOfWords, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&dictStrLen, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&encodedTextLen, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (procRank != 0)
   {
-    fprintf(stderr, "Error opening file words\n");
-    return 0;
+    dictStr = (char *)calloc(dictStrLen + 1, sizeof(char));
+    encodedText = (char *)calloc(encodedTextLen + 1, sizeof(char));
   }
+  MPI_Bcast(dictStr, dictStrLen, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-  // * get number of words for words array dynamic memory allocation
-  fscanf(knowenWordsFile, "%d", &knowenWordsCounter);
+  dict = splitStringByDelimiter(ALLOCATION_SIZE, dictStr, "\n", &decodedWordsCounter);
 
-  // * allocate knowen words array and each of it's words
-  inputfileText = inputString(knowenWordsFile, ALLOCATION_SIZE);
-  knowenWords = splitStringByDelimiter(ALLOCATION_SIZE, inputfileText, "\n", &decodedWordsCounter);
-  // }
-  // MPI_Bcast(
-  //   void* data,
-  //   int count,
-  //   MPI_Datatype datatype,
-  //   int root,
-  //   MPI_Comm communicator);
-  MPI_Bcast(knowenWords, knowenWordsCounter, MPI_CHAR, 0, MPI_COMM_WORLD);
-  MPI_Bcast(input, strlen(input), MPI_CHAR, 0, MPI_COMM_WORLD);
+  MPI_Bcast(encodedText, encodedTextLen, MPI_CHAR, 0, MPI_COMM_WORLD);
 
-  maxNum = determineMaxNum(argv[1], &givenLen, &partSize);
-  startIndex = partSize * procRank;
-  endIndex = startIndex + partSize + 1;
+  //maxNum = determineMaxNum(argv[1], &givenLen, &partSize);
+  partSize = UINT_MAX / comSize;
   if (procRank == comSize - 1)
   {
-    endIndex = maxNum;
+    partSize += UINT_MAX % comSize;
   }
+  startIndex = partSize * procRank;
+  endIndex = startIndex + partSize + 1;
+
   // fprintf(stderr, "\npartSize %d rank %d startIndex 0x%x endIndex 0x%x\n", partSize, procRank, startIndex, endIndex);
 
   for (keyInt = startIndex; keyInt < endIndex; keyInt++)
-
   {
-    keyString = createKey(keyInt, 2 * givenLen);
+    matchCounter = 0;
+    keyString = createKey(keyInt);
+    // fprintf(stderr, "process %d keyString %s\n", procRank, keyString);
     numBytesInKey = processKey(keyString);
 
     // * encode the text to a string
-    decodedText = encodeToString(numBytesInKey, input);
+    decodedText = encodeStr(numBytesInKey, encodedText, encodedTextLen);
 
     // * split text string into a string array by 'space' delimiter
     decodedSplitArray = splitStringByDelimiter(ALLOCATION_SIZE, strdup(decodedText), " ", &decodedWordsCounter);
 
 // * match all words of decoded text with each of the knowen words
-#pragma omp parallel for collapse(2) private(j) num_threads(2 * comSize)
+#pragma omp parallel for collapse(2) private(j) num_threads(4)
     for (i = 0; i < decodedWordsCounter; i++)
     {
-      for (j = 0; j < knowenWordsCounter; j++)
+      for (j = 0; j < numOfWords; j++)
       {
-        if (strlen(knowenWords[j]) > 2)
+        // fprintf(stderr, "dict[%d] = %s\n", j, dict[j]);
+        if (strlen(dict[j]) > 2)
         {
-          cmpRes = strcmp(decodedSplitArray[i], knowenWords[j]);
+          cmpRes = strcmp(decodedSplitArray[i], dict[j]);
           if (cmpRes == 0) // * words match
           {
-            cond = 1;
-            // break;
+            matchCounter++;
           }
         }
       }
-      // if (cond)
-      //   break;
     }
-    if (cond)
+    if (matchCounter >= 2)
       break;
 
     // * free current iteration
+    // fprintf(stderr, "proc %d before free 1\n", procRank);
     free(decodedSplitArray);
     free(decodedText);
-
-    // * return pointer to start of the file
-    fseek(input, 0, SEEK_SET);
-    // if (keyInt == 0xFFFF)
-    //   keyInt = 0x01000000;
-    // else
-    //   keyInt++;
   }
 
-  if (cond)
+  if (matchCounter >= 2)
   {
-    fprintf(stderr, "\nSuccsess!\nKey is: 0x%s\nDecoded text is:\n%s\n\n", keyString, decodedText);
+    fprintf(stderr, "\nProcess %d - Success!\nKey is: 0x%s\nDecoded text is:\n%s\n\n", procRank, keyString, decodedText);
 
+    // fprintf(stderr, "proc %d before free 2 success\n", procRank);
     free(decodedSplitArray);
     free(decodedText);
+
+    // MPI_Abort(MPI_COMM_WORLD, 0);
   }
   else
   {
-    fprintf(stderr, "\nFailure! No valid key was found\n");
+    fprintf(stderr, "\nProcess %d - Failure! No valid key was found\n", procRank);
   }
 
   // * clean all
-  clean(knowenWords, keyString, inputfileText, input, output, knowenWordsFile);
+  // fprintf(stderr, "proc %d before clean\n", procRank);
+  clean(dict, keyString, dictStr);
 
-  end = time(NULL);
-  fprintf(stderr, "Time taken to calculate the key is %.2f seconds\n", difftime(end, start));
+  // end = time(NULL);
+  if (procRank == 0)
+  {
+    fprintf(stderr, "Time taken to calculate the key is %f seconds\n", MPI_Wtime() - start);
+  }
   MPI_Finalize();
 
   return 0;

@@ -19,7 +19,7 @@ int main(int argc, char **argv)
   //      fprintf(stderr, "usage: %s <key>\nkey should be specified with hexa digits\n", argv[0]);
   //      exit(1);
   // }
-  unsigned int keyInt = 0x4A01;
+  unsigned int keyInt = 0x4A012F46;
   char *key = createKey(keyInt);
   // fprintf(stderr, "\n%s\n", key);
 
@@ -42,21 +42,38 @@ int main(int argc, char **argv)
   return 0;
 } // main
 
+// char *createKey(unsigned int keyInt)
+// {
+//   int keyIntLen = floor(log10(keyInt)) + 1;
+//   char *key = (char *)malloc(keyIntLen * sizeof(char));
+//   int keyStrLen = sprintf(key, "%x", keyInt);
+//   if (keyStrLen <= 8 && keyStrLen % 2 == 1)
+//   {
+//     char *temp = (char *)malloc(keyStrLen * sizeof(char));
+//     strcpy(temp, "0");
+//     strcat(temp, key);
+//     // key = (char *)realloc(key, (keyStrLen + 1));
+//     key = strdup(temp);
+//     free(temp);
+//   }
+//   return key;
+// }
+
 char *createKey(unsigned int keyInt)
 {
-  int keyIntLen = floor(log10(keyInt)) + 1;
-  char *key = (char *)malloc(keyIntLen * sizeof(char));
-  int keyStrLen = sprintf(key, "%x", keyInt);
-  if (keyStrLen <= 8 && keyStrLen % 2 == 1)
+  int keyIntLen = floor(log10(keyInt));
+  char *keyString = (char *)calloc(keyIntLen + 1, sizeof(char));
+
+  if (keyIntLen % 2 == 1)
   {
-    char *temp = (char *)malloc(keyStrLen * sizeof(char));
-    strcpy(temp, "0");
-    strcat(temp, key);
-    // key = (char *)realloc(key, (keyStrLen + 1));
-    key = strdup(temp);
-    free(temp);
+    sprintf(keyString, "0%x", keyInt);
   }
-  return key;
+  else
+  {
+    sprintf(keyString, "%x", keyInt);
+  }
+  // fprintf(stderr, "keyIntLen %d keyString %s\n", keyIntLen, keyString);
+  return keyString;
 }
 
 int hex2int(char h)
